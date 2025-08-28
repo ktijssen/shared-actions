@@ -13,7 +13,7 @@ on:
 
 jobs:
   cluster:
-    name: Apply Cluster-config to Omni
+    name: Apply Configuration to Omni
     runs-on: self-hosted
 
     steps:
