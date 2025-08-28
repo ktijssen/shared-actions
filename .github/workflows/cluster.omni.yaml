@@ -20,19 +20,26 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Install yq
+        run: |
+          curl -sSL https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -o yq
+          chmod +x yq
+          sudo mv yq /usr/local/bin/
+
       - name: Install omnictl
         run: |
           curl -sSL https://github.com/siderolabs/omni/releases/latest/download/omnictl-linux-amd64 -o omnictl
           chmod +x omnictl
           sudo mv omnictl /usr/local/bin/
 
-      - name: Validate Cluster Configuration
+      - name: Validate Cluster & MachineClass Configuration
         id: validate
         env:
           OMNI_SERVICE_ACCOUNT_KEY: ${{ secrets.OMNI_SERVICE_ACCOUNT_KEY }}
           OMNI_ENDPOINT: ${{ secrets.OMNI_ENDPOINT }}
         run: |
           omnictl cluster template validate -f clusters/${{ inputs.folderName }}/cluster.yaml
+          yq e '.' clusters/${{ inputs.folderName }}/machineclasses.yaml
 
       - name: Plan Cluster Configuration
         id: plan
