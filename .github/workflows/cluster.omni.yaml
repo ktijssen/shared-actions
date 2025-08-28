@@ -91,4 +91,5 @@ jobs:
           OMNI_SERVICE_ACCOUNT_KEY: ${{ secrets.OMNI_SERVICE_ACCOUNT_KEY }}
           OMNI_ENDPOINT: ${{ secrets.OMNI_ENDPOINT }}
         run: |
+          omnictl apply -f clusters/${{ inputs.folderName }}/machineclasses.yaml
           omnictl cluster template sync -f clusters/${{ inputs.folderName }}/cluster.yaml
