@@ -93,3 +93,49 @@ jobs:
         run: |
           omnictl apply -f clusters/${{ inputs.folderName }}/machineclasses.yaml
           omnictl cluster template sync -f clusters/${{ inputs.folderName }}/cluster.yaml
+
+  bootstrap:
+    name: Bootstrap Cluster
+    runs-on: self-hosted
+    if: inputs.bootstrap == true
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install omnictl
+        run: |
+          curl -sSL https://github.com/siderolabs/omni/releases/latest/download/omnictl-linux-amd64 -o omnictl
+          chmod +x omnictl
+          sudo mv omnictl /usr/local/bin/
+
+      - name: Install Kubectl
+        run: |
+          curl -sSL https://dl.k8s.io/release/$(curl -sSL https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl -o kubectl
+          chmod +x kubectl
+          sudo mv kubectl /usr/local/bin/
+
+      - name: Download kubeconfig
+        env:
+          OMNI_SERVICE_ACCOUNT_KEY: ${{ secrets.OMNI_SERVICE_ACCOUNT_KEY }}
+          OMNI_ENDPOINT: ${{ secrets.OMNI_ENDPOINT }}
+        run: |
+          omnictl kubeconfig --cluster ${{ inputs.folderName }} --force ./kubeconfig
+
+      - name: Verify Cluster Access
+        env:
+          KUBECONFIG: ./kubeconfig
+          COUNT: 0
+        run: |
+          # Check if kube-apiserver is ready
+
+          until kubectl get ns kube-system >/dev/null 2>&1; do
+            echo "Waiting for kube-apiserver to be ready..."
+            sleep 5
+
+            COUNT=$((COUNT + 1))
+            if [ $COUNT -gt 10 ]; then
+              echo "Timed out waiting for kube-apiserver"
+              exit 1
+            fi
+          done;
