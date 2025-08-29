@@ -125,7 +125,7 @@ jobs:
           OMNI_SERVICE_ACCOUNT_KEY: ${{ secrets.OMNI_SERVICE_ACCOUNT_KEY }}
           OMNI_ENDPOINT: ${{ secrets.OMNI_ENDPOINT }}
         run: |
-          omnictl kubeconfig --service-account --user cicd--cluster ${{ inputs.folderName }} --force ./kubeconfig
+          omnictl kubeconfig --service-account --user cicd --cluster ${{ inputs.folderName }} --force ./kubeconfig
 
       - name: Verify Cluster Access
         env:
