@@ -137,7 +137,7 @@ jobs:
 
           until kubectl get ns kube-system >/dev/null 2>&1; do
             echo "Waiting for kube-apiserver to be ready... ($COUNT/$MAX_COUNT)"
-            sleep 5
+            sleep 10
             COUNT=$((COUNT + 10))
 
             if [ $COUNT -eq $MAX_COUNT ]; then
