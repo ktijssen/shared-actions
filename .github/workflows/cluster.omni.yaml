@@ -130,17 +130,20 @@ jobs:
       - name: Verify Cluster Access
         env:
           KUBECONFIG: ./kubeconfig
-          COUNT: 1
+          COUNT: 0
+          MAX_COUNT: 300
         run: |
           # Check if kube-apiserver is ready
 
           until kubectl get ns kube-system >/dev/null 2>&1; do
-            echo "Waiting for kube-apiserver to be ready... (Attempt $COUNT)"
+            echo "Waiting for kube-apiserver to be ready... ($COUNT/$MAX_COUNT)"
             sleep 5
-            COUNT=$((COUNT + 1))
-            
-            if [ $COUNT -eq 10 ]; then
+            COUNT=$((COUNT + 10))
+
+            if [ $COUNT -eq $MAX_COUNT ]; then
               echo "ERROR: Timed out waiting for kube-apiserver"
               exit 1
             fi
-          done;
+          done
+
+          echo "kube-apiserver is ready"
