@@ -37,9 +37,10 @@ jobs:
         env:
           OMNI_SERVICE_ACCOUNT_KEY: ${{ secrets.OMNI_SERVICE_ACCOUNT_KEY }}
           OMNI_ENDPOINT: ${{ secrets.OMNI_ENDPOINT }}
+        working-directory: ./clusters/${{ inputs.folderName }}
         run: |
-          omnictl cluster template validate -f clusters/${{ inputs.folderName }}/cluster.yaml
-          yq e '.' clusters/${{ inputs.folderName }}/machineclasses.yaml
+          omnictl cluster template validate -f cluster.yaml
+          yq e '.' machineclasses.yaml
 
       - name: Plan Cluster Configuration
         id: plan
@@ -48,10 +49,11 @@ jobs:
         env:
           OMNI_SERVICE_ACCOUNT_KEY: ${{ secrets.OMNI_SERVICE_ACCOUNT_KEY }}
           OMNI_ENDPOINT: ${{ secrets.OMNI_ENDPOINT }}
+        working-directory: ./clusters/${{ inputs.folderName }}
         run: |
           {
             echo 'PLAN<<EOF'
-            omnictl cluster template diff -f clusters/${{ inputs.folderName }}/cluster.yaml | sed 's;.*/dev/null;;' | tr -s '\n'
+            omnictl cluster template diff -f cluster.yaml | sed 's;.*/dev/null;;' | tr -s '\n'
             echo EOF
           } >> "$GITHUB_OUTPUT"
 
@@ -90,14 +92,17 @@ jobs:
         env:
           OMNI_SERVICE_ACCOUNT_KEY: ${{ secrets.OMNI_SERVICE_ACCOUNT_KEY }}
           OMNI_ENDPOINT: ${{ secrets.OMNI_ENDPOINT }}
+        working-directory: ./clusters/${{ inputs.folderName }}
         run: |
-          omnictl apply -f clusters/${{ inputs.folderName }}/machineclasses.yaml
-          omnictl cluster template sync -f clusters/${{ inputs.folderName }}/cluster.yaml
+          omnictl apply -f machineclasses.yaml
+          omnictl cluster template sync -f cluster.yaml
 
   bootstrap:
     name: Bootstrap Cluster
     runs-on: self-hosted
     if: inputs.bootstrap == true
+    needs:
+      - cluster
 
     steps:
       - name: Checkout repository
@@ -130,12 +135,12 @@ jobs:
           # Check if kube-apiserver is ready
 
           until kubectl get ns kube-system >/dev/null 2>&1; do
-            echo "Waiting for kube-apiserver to be ready..."
+            COUNT=$((COUNT + 1))
+            echo "Waiting for kube-apiserver to be ready... Attempt $COUNT"
             sleep 5
 
-            COUNT=$((COUNT + 1))
             if [ $COUNT -gt 10 ]; then
-              echo "Timed out waiting for kube-apiserver"
+              echo "ERROR: Timed out waiting for kube-apiserver"
               exit 1
             fi
           done;
