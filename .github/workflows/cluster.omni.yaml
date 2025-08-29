@@ -135,7 +135,8 @@ jobs:
         run: |
           # Check if kube-apiserver is ready
 
-          until kubectl get ns kube-system >/dev/null 2>&1; do
+          # until kubectl get ns kube-system >/dev/null 2>&1; do
+          until kubectl get ns kube-system; do
             echo "Waiting for kube-apiserver to be ready... ($COUNT/$MAX_COUNT)"
             sleep 10
             COUNT=$((COUNT + 10))
