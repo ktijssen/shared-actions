@@ -2,14 +2,14 @@ name: Omni Cluster
 
 on:
   workflow_call:
-    inputs:
-      folderName:
-        required: true
-        type: string
-      bootstrapWithCilium:
-        required: true
-        default: false
-        type: boolean
+    # inputs:
+    #   folderName:
+    #     required: true
+    #     type: string
+    #   bootstrapWithCilium:
+    #     required: true
+    #     default: false
+    #     type: boolean
 
 jobs:
   cluster:
@@ -39,7 +39,6 @@ jobs:
         env:
           OMNI_SERVICE_ACCOUNT_KEY: ${{ secrets.OMNI_SERVICE_ACCOUNT_KEY }}
           OMNI_ENDPOINT: ${{ secrets.OMNI_ENDPOINT }}
-        working-directory: ./clusters/${{ inputs.folderName }}
         run: |
           # Validate Cluster Configuration
           omnictl cluster template validate -f cluster.yaml
@@ -51,7 +50,6 @@ jobs:
         env:
           OMNI_SERVICE_ACCOUNT_KEY: ${{ secrets.OMNI_SERVICE_ACCOUNT_KEY }}
           OMNI_ENDPOINT: ${{ secrets.OMNI_ENDPOINT }}
-        working-directory: ./clusters/${{ inputs.folderName }}
         run: |
           # Plan Cluster Configuration
           omnictl cluster template diff -f cluster.yaml | sed 's;.*/dev/null;;' | tr -s '\n'
@@ -96,7 +94,6 @@ jobs:
         env:
           OMNI_SERVICE_ACCOUNT_KEY: ${{ secrets.OMNI_SERVICE_ACCOUNT_KEY }}
           OMNI_ENDPOINT: ${{ secrets.OMNI_ENDPOINT }}
-        working-directory: ./clusters/${{ inputs.folderName }}
         run: |
           # Apply Cluster Configuration
           omnictl cluster template sync -f cluster.yaml
