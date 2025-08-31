@@ -183,6 +183,7 @@ jobs:
       - name: Mark cluster as bootstrapped
         env:
           KUBECONFIG: ./kubeconfig
+        if: job.steps.bootstrapped.status == success()
         run: |
           # Create a bootstrap configMap
           kubectl create configmap bootstrap --from-literal=date=$(date +%Y-%m-%d) -n kube-system
