@@ -22,25 +22,27 @@ jobs:
 
       - name: Install yq
         run: |
+          # Install yq
           curl -sSL https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -o yq
           chmod +x yq
           sudo mv yq /usr/local/bin/
 
       - name: Install omnictl
         run: |
+          # Install omnictl
           curl -sSL https://github.com/siderolabs/omni/releases/latest/download/omnictl-linux-amd64 -o omnictl
           chmod +x omnictl
           sudo mv omnictl /usr/local/bin/
 
-      - name: Validate Cluster & MachineClass Configuration
+      - name: Validate Cluster Configuration
         id: validate
         env:
           OMNI_SERVICE_ACCOUNT_KEY: ${{ secrets.OMNI_SERVICE_ACCOUNT_KEY }}
           OMNI_ENDPOINT: ${{ secrets.OMNI_ENDPOINT }}
         working-directory: ./clusters/${{ inputs.folderName }}
         run: |
+          # Validate Cluster Configuration
           omnictl cluster template validate -f cluster.yaml
-          yq e '.' machineclasses.yaml > /dev/null
 
       - name: Plan Cluster Configuration
         id: plan
@@ -51,10 +53,11 @@ jobs:
           OMNI_ENDPOINT: ${{ secrets.OMNI_ENDPOINT }}
         working-directory: ./clusters/${{ inputs.folderName }}
         run: |
+          # Plan Cluster Configuration
+          omnictl cluster template diff -f cluster.yaml | sed 's;.*/dev/null;;' | tr -s '\n'
           {
             echo 'PLAN<<EOF'
             omnictl cluster template diff -f cluster.yaml | sed 's;.*/dev/null;;' | tr -s '\n'
-            omnictl apply -f machineclasses.yaml --dry-run
             echo EOF
           } >> "$GITHUB_OUTPUT"
 
@@ -95,96 +98,96 @@ jobs:
           OMNI_ENDPOINT: ${{ secrets.OMNI_ENDPOINT }}
         working-directory: ./clusters/${{ inputs.folderName }}
         run: |
-          omnictl apply -f machineclasses.yaml
+          # Apply Cluster Configuration
           omnictl cluster template sync -f cluster.yaml
 
-  bootstrap:
-    name: Bootstrap with Cilium CNI
-    runs-on: self-hosted
-    if: inputs.bootstrapWithCilium == true
-    needs:
-      - cluster
+  # bootstrap:
+  #   name: Bootstrap with Cilium CNI
+  #   runs-on: self-hosted
+  #   if: inputs.bootstrapWithCilium == true
+  #   needs:
+  #     - cluster
 
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+  #   steps:
+  #     - name: Checkout repository
+  #       uses: actions/checkout@v4
 
-      - name: Install omnictl
-        run: |
-          curl -sSL https://github.com/siderolabs/omni/releases/latest/download/omnictl-linux-amd64 -o omnictl
-          chmod +x omnictl
-          sudo mv omnictl /usr/local/bin/
+  #     - name: Install omnictl
+  #       run: |
+  #         curl -sSL https://github.com/siderolabs/omni/releases/latest/download/omnictl-linux-amd64 -o omnictl
+  #         chmod +x omnictl
+  #         sudo mv omnictl /usr/local/bin/
 
-      - name: Install Kubectl
-        run: |
-          curl -sSL https://dl.k8s.io/release/$(curl -sSL https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl -o kubectl
-          chmod +x kubectl
-          sudo mv kubectl /usr/local/bin/
+  #     - name: Install Kubectl
+  #       run: |
+  #         curl -sSL https://dl.k8s.io/release/$(curl -sSL https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl -o kubectl
+  #         chmod +x kubectl
+  #         sudo mv kubectl /usr/local/bin/
 
-      - name: Install Cilium CLI
-        run: |
-          curl -sSL https://github.com/cilium/cilium-cli/releases/latest/download/cilium-linux-amd64.tar.gz -o cilium-linux.tar.gz
-          sudo tar xzvfC cilium-linux.tar.gz /usr/local/bin
+  #     - name: Install Cilium CLI
+  #       run: |
+  #         curl -sSL https://github.com/cilium/cilium-cli/releases/latest/download/cilium-linux-amd64.tar.gz -o cilium-linux.tar.gz
+  #         sudo tar xzvfC cilium-linux.tar.gz /usr/local/bin
 
-      - name: Download kubeconfig
-        env:
-          OMNI_SERVICE_ACCOUNT_KEY: ${{ secrets.OMNI_SERVICE_ACCOUNT_KEY }}
-          OMNI_ENDPOINT: ${{ secrets.OMNI_ENDPOINT }}
-        run: |
-          omnictl kubeconfig --service-account --user cicd --cluster ${{ inputs.folderName }} --force ./kubeconfig
+  #     - name: Download kubeconfig
+  #       env:
+  #         OMNI_SERVICE_ACCOUNT_KEY: ${{ secrets.OMNI_SERVICE_ACCOUNT_KEY }}
+  #         OMNI_ENDPOINT: ${{ secrets.OMNI_ENDPOINT }}
+  #       run: |
+  #         omnictl kubeconfig --service-account --user cicd --cluster ${{ inputs.folderName }} --force ./kubeconfig
 
-      - name: Verify Cluster Access
-        env:
-          KUBECONFIG: ./kubeconfig
-          COUNT: 0
-          MAX_COUNT: 300
-        run: |
-          # Check if kube-apiserver is ready
+  #     - name: Verify Cluster Access
+  #       env:
+  #         KUBECONFIG: ./kubeconfig
+  #         COUNT: 0
+  #         MAX_COUNT: 300
+  #       run: |
+  #         # Check if kube-apiserver is ready
 
-          until kubectl get ns kube-system >/dev/null 2>&1; do
-            echo "Waiting for cluster-access... ($COUNT/$MAX_COUNT)"
-            sleep 10
-            COUNT=$((COUNT + 10))
+  #         until kubectl get ns kube-system >/dev/null 2>&1; do
+  #           echo "Waiting for cluster-access... ($COUNT/$MAX_COUNT)"
+  #           sleep 10
+  #           COUNT=$((COUNT + 10))
 
-            if [ $COUNT -eq $MAX_COUNT ]; then
-              echo "ERROR: Timed out waiting for cluster-access"
-              exit 1
-            fi
-          done
+  #           if [ $COUNT -eq $MAX_COUNT ]; then
+  #             echo "ERROR: Timed out waiting for cluster-access"
+  #             exit 1
+  #           fi
+  #         done
 
-      - name: Verify if cluster is already bootstrapped
-        id: bootstrapped
-        env:
-          KUBECONFIG: ./kubeconfig
-        continue-on-error: true
-        run: |
-          # Check if bootstrap configMap exists
+  #     - name: Verify if cluster is already bootstrapped
+  #       id: bootstrapped
+  #       env:
+  #         KUBECONFIG: ./kubeconfig
+  #       continue-on-error: true
+  #       run: |
+  #         # Check if bootstrap configMap exists
 
-          if kubectl get configmap bootstrap -n kube-system >/dev/null 2>&1; then
-            echo "Cluster is already bootstrapped, exiting..."
-            echo "::error ::Cluster is already bootstrapped"
-          fi
+  #         if kubectl get configmap bootstrap -n kube-system >/dev/null 2>&1; then
+  #           echo "Cluster is already bootstrapped, exiting..."
+  #           echo "::error ::Cluster is already bootstrapped"
+  #         fi
 
-      - name: Deploy Cilium CNI
-        if: job.steps.bootstrapped.status == success()
-        run: |
-          # Deploy Cilium
+  #     - name: Deploy Cilium CNI
+  #       if: job.steps.bootstrapped.status == success()
+  #       run: |
+  #         # Deploy Cilium
 
-          cilium install --kubeconfig ./kubeconfig \
-            --version 1.17.7 \
-            --set ipam.mode=kubernetes \
-            --set kubeProxyReplacement=true \
-            --set securityContext.capabilities.ciliumAgent="{CHOWN,KILL,NET_ADMIN,NET_RAW,IPC_LOCK,SYS_ADMIN,SYS_RESOURCE,DAC_OVERRIDE,FOWNER,SETGID,SETUID}" \
-            --set securityContext.capabilities.cleanCiliumState="{NET_ADMIN,SYS_ADMIN,SYS_RESOURCE}" \
-            --set cgroup.autoMount.enabled=false \
-            --set cgroup.hostRoot=/sys/fs/cgroup \
-            --set k8sServiceHost=localhost \
-            --set k8sServicePort=7445
+  #         cilium install --kubeconfig ./kubeconfig \
+  #           --version 1.17.7 \
+  #           --set ipam.mode=kubernetes \
+  #           --set kubeProxyReplacement=true \
+  #           --set securityContext.capabilities.ciliumAgent="{CHOWN,KILL,NET_ADMIN,NET_RAW,IPC_LOCK,SYS_ADMIN,SYS_RESOURCE,DAC_OVERRIDE,FOWNER,SETGID,SETUID}" \
+  #           --set securityContext.capabilities.cleanCiliumState="{NET_ADMIN,SYS_ADMIN,SYS_RESOURCE}" \
+  #           --set cgroup.autoMount.enabled=false \
+  #           --set cgroup.hostRoot=/sys/fs/cgroup \
+  #           --set k8sServiceHost=localhost \
+  #           --set k8sServicePort=7445
 
-      - name: Mark cluster as bootstrapped
-        env:
-          KUBECONFIG: ./kubeconfig
-        if: job.steps.bootstrapped.status == success()
-        run: |
-          # Create a bootstrap configMap
-          kubectl create configmap bootstrap --from-literal=date=$(date +%Y-%m-%d) -n kube-system
+  #     - name: Mark cluster as bootstrapped
+  #       env:
+  #         KUBECONFIG: ./kubeconfig
+  #       if: job.steps.bootstrapped.status == success()
+  #       run: |
+  #         # Create a bootstrap configMap
+  #         kubectl create configmap bootstrap --from-literal=date=$(date +%Y-%m-%d) -n kube-system
