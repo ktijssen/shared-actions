@@ -98,9 +98,9 @@ jobs:
           omnictl cluster template sync -f cluster.yaml
 
   bootstrap:
-    name: Bootstrap Cluster
+    name: Bootstrap with Cilium CNI
     runs-on: self-hosted
-    if: inputs.bootstrap == true
+    if: inputs.bootstrapWithCilium == true
     needs:
       - cluster
 
@@ -119,6 +119,11 @@ jobs:
           curl -sSL https://dl.k8s.io/release/$(curl -sSL https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl -o kubectl
           chmod +x kubectl
           sudo mv kubectl /usr/local/bin/
+
+      - name: Install Cilium CLI
+        run: |
+          curl -sSL https://github.com/cilium/cilium-cli/releases/latest/download/cilium-linux-amd64.tar.gz -o cilium-linux.tar.gz
+          sudo tar xzvfC cilium-linux.tar.gz /usr/local/bin
 
       - name: Download kubeconfig
         env:
@@ -147,3 +152,18 @@ jobs:
           done
 
           echo "kube-apiserver is ready"
+
+      - name: Deploy Cilium CNI
+        run: |
+          # Deploy Cilium
+
+          cilium install --kubeconfig ./kubeconfig \
+            --version 1.17.7 \
+            --set ipam.mode=kubernetes \
+            --set kubeProxyReplacement=true \
+            --set securityContext.capabilities.ciliumAgent="{CHOWN,KILL,NET_ADMIN,NET_RAW,IPC_LOCK,SYS_ADMIN,SYS_RESOURCE,DAC_OVERRIDE,FOWNER,SETGID,SETUID}" \
+            --set securityContext.capabilities.cleanCiliumState="{NET_ADMIN,SYS_ADMIN,SYS_RESOURCE}" \
+            --set cgroup.autoMount.enabled=false \
+            --set cgroup.hostRoot=/sys/fs/cgroup \
+            --set k8sServiceHost=localhost \
+            --set k8sServicePort=7445
