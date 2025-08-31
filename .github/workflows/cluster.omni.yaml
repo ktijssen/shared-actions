@@ -54,11 +54,6 @@ jobs:
           {
             echo 'PLAN<<EOF'
             omnictl cluster template diff -f cluster.yaml | sed 's;.*/dev/null;;' | tr -s '\n'
-            echo EOF
-          } >> "$GITHUB_OUTPUT"
-
-          {
-            echo 'PLAN_MC<<EOF'
             omnictl apply -f machineclasses.yaml --dry-run
             echo EOF
           } >> "$GITHUB_OUTPUT"
@@ -80,7 +75,6 @@ jobs:
 
             \`\`\`diff\n
             ${process.env.PLAN}
-            ${process.env.PLAN_MC}
             \`\`\`
 
             </details>
