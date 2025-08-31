@@ -161,6 +161,7 @@ jobs:
 
           if kubectl get configmap bootstrap -n kube-system >/dev/null 2>&1; then
             echo "Cluster is already bootstrapped, exiting..."
+            echo "::error ::Cluster is already bootstrapped"
             exit 1
           fi
 
