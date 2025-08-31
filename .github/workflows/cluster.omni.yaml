@@ -6,7 +6,7 @@ on:
       folderName:
         required: true
         type: string
-      bootstrap:
+      bootstrapWithCilium:
         required: true
         default: false
         type: boolean
