@@ -152,17 +152,20 @@ jobs:
           done
 
       - name: Verify if cluster is already bootstrapped
+        id: bootstrapped
         env:
           KUBECONFIG: ./kubeconfig
+        continue-on-error: true
         run: |
           # Check if bootstrap configMap exists
 
           if kubectl get configmap bootstrap -n kube-system >/dev/null 2>&1; then
             echo "Cluster is already bootstrapped, exiting..."
-            exit 0
+            exit 1
           fi
 
       - name: Deploy Cilium CNI
+        if: job.steps.bootstrapped.status == success()
         run: |
           # Deploy Cilium
 
